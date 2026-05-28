@@ -94,15 +94,15 @@ internal sealed class WarningQueueListener(
 
 internal sealed class DiscordWebhookClient(HttpClient httpClient, ILogger<DiscordWebhookClient> logger)
 {
-    private static readonly Uri DiscordWebhookUri = new(
-        "https://discord.com/api/webhooks/1509481122134888449/kFjkPKVOfcL7PipwfNSBGEJ7M97Mp93TDAlWCT-HM2CPkn-etewukR1qDPZ9OhAhLpB6");
+    private const string WebhookUrlEnvironmentVariable = "DISCORD_WEBHOOK_URL";
+    private readonly Uri _discordWebhookUri = ResolveDiscordWebhookUri();
 
     public async Task SendWarningAsync(WarningMessage warning, CancellationToken cancellationToken)
     {
         var payload = new DiscordWebhookPayload(
             Content: $"Warning: {warning.Name}\n{warning.Description}\nEnqueuedAtUtc: {warning.EnqueuedAtUtc:O}");
 
-        using var response = await httpClient.PostAsJsonAsync(DiscordWebhookUri, payload, cancellationToken);
+        using var response = await httpClient.PostAsJsonAsync(_discordWebhookUri, payload, cancellationToken);
         if (response.IsSuccessStatusCode)
         {
             return;
@@ -113,6 +113,24 @@ internal sealed class DiscordWebhookClient(HttpClient httpClient, ILogger<Discor
             "Discord webhook returned non-success status code {StatusCode}. Response: {ResponseBody}",
             (int)response.StatusCode,
             responseBody);
+    }
+
+    private static Uri ResolveDiscordWebhookUri()
+    {
+        var webhookUrl = Environment.GetEnvironmentVariable(WebhookUrlEnvironmentVariable);
+        if (string.IsNullOrWhiteSpace(webhookUrl))
+        {
+            throw new InvalidOperationException(
+                $"Environment variable '{WebhookUrlEnvironmentVariable}' is required.");
+        }
+
+        if (!Uri.TryCreate(webhookUrl, UriKind.Absolute, out var webhookUri))
+        {
+            throw new InvalidOperationException(
+                $"Environment variable '{WebhookUrlEnvironmentVariable}' must be a valid absolute URI.");
+        }
+
+        return webhookUri;
     }
 }
 
