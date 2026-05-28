@@ -35,3 +35,6 @@ docker run --rm -p 8080:8080 \
 ## Endpoint
 
 `POST /notification`
+
+## Test
+To run tests goto Alert-Rest-API.Tests folder and execute dotnet test
