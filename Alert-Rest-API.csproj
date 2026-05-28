@@ -7,4 +7,10 @@
     <RootNamespace>Alert_Rest_API</RootNamespace>
   </PropertyGroup>
 
+  <ItemGroup>
+    <Compile Remove="Alert-Rest-API.Tests\**\*.cs" />
+    <None Remove="Alert-Rest-API.Tests\**\*" />
+    <Content Remove="Alert-Rest-API.Tests\**\*" />
+  </ItemGroup>
+
 </Project>

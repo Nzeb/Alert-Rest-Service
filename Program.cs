@@ -90,3 +90,7 @@ internal sealed class WarningQueueListener(
         }
     }
 }
+
+public partial class Program
+{
+}
