@@ -1,4 +1,5 @@
 using System.Threading.Channels;
+using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -8,33 +9,50 @@ builder.Services.AddHttpClient<DiscordWebhookClient>();
 
 var app = builder.Build();
 
-app.MapPost("/notification", (NotificationRequest request, WarningQueue warningQueue, ILogger<Program> logger) =>
+app.MapPost("/notification", (JsonElement requestBody, WarningQueue warningQueue, ILogger<Program> logger) =>
 {
-    if (!string.Equals(request.Type?.Trim(), "Warning", StringComparison.OrdinalIgnoreCase))
+    var type = GetStringPropertyCaseInsensitive(requestBody, "Type");
+    if (!string.Equals(type?.Trim(), "Warning", StringComparison.OrdinalIgnoreCase))
     {
         return Results.Accepted();
     }
 
     var warning = new WarningMessage(
-        Name: request.Name?.Trim() ?? string.Empty,
-        Description: request.Description?.Trim() ?? string.Empty,
+        PayloadJson: requestBody.GetRawText(),
         EnqueuedAtUtc: DateTimeOffset.UtcNow);
 
     warningQueue.TryEnqueue(warning);
 
-    logger.LogWarning(
-        "Warning notification queued. Name: {Name}, Description: {Description}",
-        warning.Name,
-        warning.Description);
+    logger.LogWarning("Warning notification queued. EnqueuedAtUtc: {EnqueuedAtUtc}", warning.EnqueuedAtUtc);
 
     return Results.Ok();
 });
 
 app.Run();
 
-internal sealed record NotificationRequest(string? Type, string? Name, string? Description);
+static string? GetStringPropertyCaseInsensitive(JsonElement json, string propertyName)
+{
+    if (json.ValueKind != JsonValueKind.Object)
+    {
+        return null;
+    }
 
-internal sealed record WarningMessage(string Name, string Description, DateTimeOffset EnqueuedAtUtc);
+    foreach (var property in json.EnumerateObject())
+    {
+        if (!string.Equals(property.Name, propertyName, StringComparison.OrdinalIgnoreCase))
+        {
+            continue;
+        }
+
+        return property.Value.ValueKind == JsonValueKind.String
+            ? property.Value.GetString()
+            : property.Value.ToString();
+    }
+
+    return null;
+}
+
+internal sealed record WarningMessage(string PayloadJson, DateTimeOffset EnqueuedAtUtc);
 
 internal sealed class WarningQueue
 {
@@ -68,11 +86,7 @@ internal sealed class WarningQueueListener(
         {
             await foreach (var warning in warningQueue.ListenAsync(stoppingToken))
             {
-                logger.LogWarning(
-                    "Warning notification processed from queue. Name: {Name}, Description: {Description}, EnqueuedAtUtc: {EnqueuedAtUtc}",
-                    warning.Name,
-                    warning.Description,
-                    warning.EnqueuedAtUtc);
+                logger.LogWarning("Warning notification processed from queue. EnqueuedAtUtc: {EnqueuedAtUtc}", warning.EnqueuedAtUtc);
 
                 try
                 {

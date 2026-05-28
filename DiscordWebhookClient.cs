@@ -13,7 +13,7 @@ internal sealed class DiscordWebhookClient(HttpClient httpClient, ILogger<Discor
     public async Task SendWarningAsync(WarningMessage warning, CancellationToken cancellationToken)
     {
         var payload = new DiscordWebhookPayload(
-            Content: $"Warning: {warning.Name}\n{warning.Description}\nEnqueuedAtUtc: {warning.EnqueuedAtUtc:O}");
+            Content: warning.PayloadJson);
 
         for (var attempt = 1; attempt <= MaxRetryAttempts; attempt++)
         {
