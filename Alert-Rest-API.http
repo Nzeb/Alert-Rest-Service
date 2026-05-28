@@ -1,0 +1,5 @@
+@Alert_Rest_API_HostAddress = http://localhost:5026
+
+POST {{Alert_Rest_API_HostAddress}}/notification
+
+###
