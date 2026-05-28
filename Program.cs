@@ -4,13 +4,17 @@ var app = builder.Build();
 
 app.MapPost("/notification", (NotificationRequest request, ILogger<Program> logger) =>
 {
-    logger.LogInformation(
-        "Notification endpoint was called. Type: {Type}, Name: {Name}, Description: {Description}",
-        request.Type,
+    if (!string.Equals(request.Type?.Trim(), "Warning", StringComparison.OrdinalIgnoreCase))
+    {
+        return Results.Accepted();
+    }
+
+    logger.LogWarning(
+        "Warning notification received. Name: {Name}, Description: {Description}",
         request.Name,
         request.Description);
 
-    return Results.NoContent();
+    return Results.Ok();
 });
 
 app.Run();
