@@ -1,0 +1,15 @@
+.git
+.gitignore
+.vscode
+.idea
+
+**/bin
+**/obj
+**/TestResults
+
+Alert-Rest-API.Tests/bin
+Alert-Rest-API.Tests/obj
+
+*.user
+*.suo
+*.log
